@@ -1,0 +1,34 @@
+---
+title: "Initial look"
+author: "Amalie Lysgaard Andersen"
+date: "4/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(pacman)
+pacman::p_load(ggplot2, tidyverse)
+
+df <- read.csv("firstdata_download.csv")
+
+```
+
+```{r}
+mean(df$Age)
+mean(df$Men..Rot)
+sum(df$Gender == "F")
+sum(df$Gender == "M")
+
+df$Age <- as.numeric(df$Age)
+df$Men..Rot <- as.numeric(df$Men..Rot)
+```
+
+```{r}
+ggplot(df) + 
+  geom_bar(aes(Gender, fill = "Gender"))
+
+```
+
+
+
+
