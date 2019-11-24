@@ -7,26 +7,69 @@ output: html_document
 
 ```{r setup, include=FALSE}
 library(pacman)
-pacman::p_load(ggplot2, tidyverse)
+pacman::p_load(ggplot2, tidyverse, tidytext)
 
-df <- read.csv("firstdata_download.csv")
+df <- read.csv("cleandata.csv")
+cat <- read.csv("Categories - priority categories.csv")
 
+# Conditions
+con_b <- filter(df, condition == "B") 
+con_m <- filter(df, condition == "M") 
 ```
 
-```{r}
-mean(df$Age)
-mean(df$Men..Rot)
-sum(df$Gender == "F")
-sum(df$Gender == "M")
+#1 FIRST LOOKS
+```{r mean and sum}
+df$men_rot <- as.numeric(as.character(df$men_rot))  
+df$men_rot <- round(df$men_rot, digits = 2)
+firstphase <- filter(df, phase =="1")
 
-df$Age <- as.numeric(df$Age)
-df$Men..Rot <- as.numeric(df$Men..Rot)
+mean(firstphase$age)
+mean(firstphase$men_rot)
+sum(firstphase$gender == "F")
+sum(firstphase$gender == "M")
+
+firstphase <- filter(df, phase =="1")
+secondphase <- filter(df, phase == "2")
+
+mean(secondphase$age)
 ```
 
-```{r}
-ggplot(df) + 
-  geom_bar(aes(Gender, fill = "Gender"))
+```{r plot: gender and MR} 
+ggplot(df, aes(gender)) + 
+  geom_bar(aes(gender, fill = gender))
 
+
+
+ggplot(firstphase) + 
+  geom_bar(aes(gender, fill = gender))
+
+ggplot(firstphase) +
+  geom_point(aes(x = ID, y = men_rot))
+
+ggplot(firstphase) +
+  geom_density(aes(men_rot, colour = "blue"))
+
+ggplot(df, aes(condition, men_rot)) +
+  geom_bar(stat = "summary", fun.y = mean, aes(fill = condition))
+```
+
+
+#2 CATEGORISATION
+```{r}
+#loading new df with spellchecked descriptions
+df_spell <- read.csv("data_spellchecked.csv")
+
+# df with only descrip
+descrip <- df_spell$desc
+descrip <- as.data.frame(descrip)
+descrip$descrip <- as.character(descrip$descrip)
+
+#tokenising
+tokenized <- unnest_tokens(descrip, word, descrip, token = "words")
+unique <- unique(tokenized$word)
+unique <- as.data.frame(unique)
+
+# 445 unique words
 ```
 
 

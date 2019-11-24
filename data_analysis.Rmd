@@ -1,0 +1,169 @@
+---
+title: "Data analysis"
+author: "Amalie Lysgaard Andersen"
+date: "14 11 2019"
+output: html_document
+---
+
+# 1. Initial preprocessing
+```{r load, data, include=FALSE}
+library(pacman)
+pacman::p_load(ggplot2, tidyverse, stringi, stringr, pie)
+
+df <-  read.csv("df_spellchecked_numbersfixed.csv")
+cat <- read.csv("Categories - priority categories.csv", na.strings = c("","NA"))
+
+# Filtering to groups
+##conditions
+con_b <- filter(df, condition == "B") 
+con_m <- filter(df, condition == "M") 
+```
+
+```{r factor, character} 
+df$chain <- as.factor(df$chain) 
+df$scene <- as.factor(df$scene)
+df$phase <- as.factor(df$phase)
+df$generation <- as.factor(df$generation)
+
+df$desc <- as.character(df$desc)
+
+cat$colour <- as.character(cat$colour)
+cat$pattern <- as.character(cat$pattern)
+cat$landmark <- as.character(cat$landmark)
+cat$direction <- as.character(cat$direction)
+cat$number <- as.character(cat$number)
+```
+
+
+
+# 2. Word count in each category
+```{r counts}
+#Counting all words 
+#df_2$direc_count <- str_count(df_2$desc, paste(na.omit(cat$direction), collapse = "|"))
+#df_2$number_count <- str_count(df_2$desc, paste(na.omit(cat$number), collapse = "|"))
+#df_2$colour_count <- str_count(df_2$desc, paste(na.omit(cat$colour), collapse = "|"))
+#df_2$pattern_count <- str_count(df_2$desc, paste(na.omit(cat$pattern), collapse = "|"))
+#df_2$landmark_count <- str_count(df_2$desc, paste(na.omit(cat$landmark), collapse = "|"))
+
+######## Annotation scheme ########
+
+#New df incl. cat
+#df <- merge(data.frame(df, row.names=NULL), data.frame(cat, row.names=NULL), by = 0, all = TRUE)[-1]
+
+# create list for each category with words (regular expressions where needed)
+# directions
+directions <- c("højre", "venstre", "ligeud", "\\bned\\b", "\\bop\\b", "bagud","ligefrem","\\bhen\\b","\\frem\\b", "fremad", "nedad", "nordøst", "skråt", "90", "180", "\\bret\\b", "klokken")
+as.character(directions)
+df$direc_count <- str_count(df$desc, paste(directions, collapse = "|"))
+
+
+# numbers
+numbers <- c("\\bén\\b","\\b2\\b","\\b5\\b","\\b4\\b","\\bet\\b","\\bførste\\b","\\banden\\b","\\bforrige\\b","\\btre\\b","\\b1\\b","\\b3\\b","\\btredje\\b","\\bfjerde\\b","\\bsidste\\b","\\bto\\b","\\b7\\b","\\b10\\b","\\b25\\b","\\b15\\b","\\b8\\b","\\bfå\\b")
+as.character(numbers)
+df$number_count <- str_count(df$desc, paste(numbers, collapse = "|"))
+
+
+# colours 
+colours <- c("rød", "grøn", "\\blilla\\b", "blå","hvid", "gul", "orange","brun")
+as.character(colours)
+df$colour_count <- str_count(df$desc, paste(colours, collapse = "|"))
+
+# shapes
+patterns <- c("prik", "plet", "streg", "pil", "oval","cirkler", "stjerne","firkant","trekant","kvadrat","tern","stribe","ellipse","gitter","ensfarvede","mønster")
+as.character(patterns)
+df$pattern_count <- str_count(df$desc, paste(patterns, collapse = "|"))
+
+
+# landmarks 
+landmarks <- c("væg", "blindgyde", "kasse", "åbning", "stjernevæg", "kant", "bygning", "plads", "hus", "hjørne", "tårn", "indhak", "mur", "mål", "gyde", "sidevej", "torv", "sidegade", "sidevej", "bue", "kryds", "\\brum\\b", "firkanten", "toppen", "slutningen", "endevæg", "udgang", "passage", "vindue")
+as.character(landmarks)
+df$landmark_count <- str_count(df$desc, paste(landmarks, collapse = "|"))
+```
+
+```{r condition count, proportion}
+# New variable that gathers word categories into conditions
+df$manhattan_count <- df$number_count + df$direc_count
+df$barcelona_count <-  df$landmark_count + df$colour_count + df$pattern_count
+
+
+# Subsets acc to phase
+#df_1 <- filter(df, phase == "1")
+df_2 <- filter(df, phase == "2")
+#df_3 <- filter(df, phase == "3")
+
+
+# removing punctualisations
+df$desc <- str_replace_all(df$desc, "[[:punct:]]", "")
+
+# break up the description strings in each row by " " to get individual words
+split <- strsplit(df$desc, split=" ")
+
+# count the number of words as the length of the vectors
+df$wordcount <- sapply(split, length)
+
+# calculating proportion of condition words out of all words used (to account for length differences)
+df$barcelona_prop <- (df$barcelona_count/df$wordcount) * 100
+df$manhattan_prop <- (df$manhattan_count/df$wordcount) * 100
+
+# decimal
+df$barcelona_prop <- round(df$barcelona_prop, 2)
+df$manhattan_prop <- round(df$manhattan_prop, 2)
+```
+
+
+
+# 3. Modelling
+```{r}
+
+
+
+```
+
+
+
+# 4. Plots
+```{r initial plots}
+
+ggplot(df_2, aes()) +
+  geom_histogram(aes(manhattan_count)) +
+  facet_wrap(~barcelona_count)
+
+ggplot(df_2, aes(manhattan_count, barcelona_count)) +
+  geom_histogram()
+
+
+ggplot(df_2, aes(x = manhattan_count)) +
+  geom_bar(aes(y = barcelona_count)) 
+
+
+plot1 <- ggplot(moraldata, aes(x = framing, y = choice)) +
+  geom_bar(stat = "summary", fun.data = mean_cl_boot, width = 0.5, aes(fill = framing)) +
+  facet_wrap(~scenario) +
+  labs(x = "Answer", y = "Count", title = "Count of answers in the two conditions") +
+  theme(legend.position = "none")
+
+plot1
+plot(data)
+
+
+
+```
+
+
+
+
+
+
+
+
+# x. Plot
+- Idea: radar plot in ggplot
+
+```{r}
+
+```
+
+
+
+
+
