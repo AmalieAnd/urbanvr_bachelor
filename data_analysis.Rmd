@@ -4,14 +4,18 @@ author: "Amalie Lysgaard Andersen"
 date: "14 11 2019"
 output: html_document
 ---
-################################ Bachelor project ################################ 
 
-
-
-### 1. Initial preprocessing
-```{r load, data, include=FALSE}
+                                                   Bachelor project: Analysis of 'TITLE' 
+                                                                
+                                            Annamaya Halskov-Jensen & Amalie Lysgaard Andersen                       
+                                                              
+                                              
+                                                      1. Initial preprocessing
+```{r load, data, include=FALSE} 
 library(pacman)
-pacman::p_load(ggplot2, tidyverse, stringi, stringr, pie, brms)
+pacman::p_load(ggplot2, tidyverse, stringi, stringr, brms, RColorBrewer)
+
+#"bayesplot", "RColorBrewer", "cowplot"
 
 df <-  read.csv("df_spellchecked_numbersfixed.csv")
 cat <- read.csv("Categories - priority categories.csv", na.strings = c("","NA"))
@@ -39,7 +43,7 @@ cat$number <- as.character(cat$number)
 ```
 
 ```{r means}
-mean(firstphase$age)
+mean(firstphase$age) 
 # 22.98611
 sd(firstphase$age)
 # 2.855649
@@ -51,7 +55,7 @@ mean(firstphase$men_rot)
 
 
 
-### 2. Word count in each category
+                                                  2. Word count in each category
 ```{r counts}
 #Counting all words  
 #df_2$direc_count <- str_count(df_2$desc, paste(na.omit(cat$direction), collapse = "|"))
@@ -137,7 +141,7 @@ df_2 <- filter(df, phase == "2")
 
 
 
-### 3. Modelling
+                                                          3. Modelling
 
 # Hypothesis (1.1) - (1.5)
 Priors set:
@@ -156,7 +160,7 @@ prior_first = c(
 ```
 
 Direction model 
-```{r direc and cond} 
+```{r direc and cond}  
 # predictive prior check
 direc_prior <- brm(direc_prop ~ 1 + condition,  
                   family = "normal", 
@@ -182,7 +186,7 @@ pp_check(direc1, nsample = 100)
 ```
 
 Number model
-```{r number and cond}
+```{r number and cond} 
 # predictive prior check 
 number_prior <- brm(number_prop ~ 1 + condition, 
                   family = "normal", 
@@ -207,7 +211,7 @@ pp_check(number1, nsample = 100)
 
 Colour model
 ```{r col and cond} 
-# predictive prior check 
+# predictive prior check  
 col_prior <- brm(colour_prop ~ 1 + condition, 
                   family = "normal", 
                   df_2, 
@@ -230,7 +234,7 @@ pp_check(colour1, nsample = 100)
 ```
 
 Pattern model
-```{r pattern and cond} 
+```{r pattern and cond}  
 # predictive prior check 
 pattern_prior <- brm(pattern_prop ~ 1 + condition, 
                   family = "normal", 
@@ -251,7 +255,6 @@ plot(pattern1)
 
 #checking posterior 
 pp_check(pattern1, nsample = 100)
- 
 ```
 
 Landmark model
@@ -297,7 +300,7 @@ prior_second = c(
 
 Barcelona model
 ```{r}
-# predictive prior check
+# predictive prior check 
 barca_prior <- brm(barcelona_prop ~ 1 + condition + generation, 
                   family = "normal", 
                   df_2, 
@@ -330,7 +333,7 @@ manhat_prior <- brm(manhattan_prop ~ 1 + condition + generation,
 
 # pp-check
 pp_check(manhat_prior, nsample = 100)
-
+ 
 #modelling in brm
 manhat1 <- brm(manhattan_prop ~ 1 + condition + generation, 
             family = gaussian, 
@@ -344,7 +347,7 @@ pp_check(manhat1, nsample = 100)
 ```
 
 
-### 4. Model comparison
+                                                            4. Model comparison
 
 WAIC
 ```{r adding waic criterion for all models}
@@ -377,18 +380,9 @@ model_weights(barca1, manhat1, weights = "waic") %>%
   round(digits = 2)
 ```
 
-```{r marginal effects plots}
-brms::marginal_effects(direc1)
-brms::marginal_effects(number1)
-brms::marginal_effects(colour1)
-brms::marginal_effects(pattern1)
-brms::marginal_effects(landmark1)
-brms::marginal_effects(barca1)
-brms::marginal_effects(manhat1)
-```
 
-
-# 5. Plots
+                                                                
+                                                                5. Plots
 
 ```{r raw data}
 # single categories
@@ -426,8 +420,176 @@ ggplot(df_2, aes(x = manhattan_prop, fill = condition, color = condition)) +
   theme_minimal()
 ```
 
+```{r marginal effects plots} 
+brms::marginal_effects(direc1)
+brms::marginal_effects(number1)
+brms::marginal_effects(colour1)
+brms::marginal_effects(pattern1)
+brms::marginal_effects(landmark1)
+brms::marginal_effects(barca1)
+brms::marginal_effects(manhat1)
+
+# direc w/labs
+this <- brms::marginal_effects(direc1)
+plot(this, plot = F)[[1]] +
+  scale_color_brewer(type = "qual", palette = "Set1") +
+  scale_fill_brewer(type = "qual", palette = "Set1") +
+  labs(title = "Marginal effects of Model 1.1 (Direction) ", x = "Condition", y = "Count of direction words") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+that <- brms::marginal_effects(colour1)
+plot(that, plot = F)[[1]] +
+  scale_color_brewer(type = "qual", palette = "Set1") +
+  scale_fill_brewer(type = "qual", palette = "Set1") +
+  labs(title = "Marginal effects of Model 1.3 (Colour) ", x = "Condition", y = "Count of colour words") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r pred vs actual plots}
+#(not used)
+
+### direction
+#creating predictions from model
+pred_direc <- predict(direc1) 
+pred_direc <- as.data.frame(pred_direc)
+pred_direc$actual <- df_2$direc_prop
+pred_direc$condition <- df_2$condition
+
+#plot
+ggplot(pred_direc, aes(actual, Estimate)) +
+  geom_smooth(color = "#449999", method = "lm", se = F) +
+  geom_point(color = "Dark red") +
+  geom_abline(xintercept = 100, yintercept = 100, linetype = "dashed") +
+  xlim(0, 10) +
+  ylim(0, 10) +
+  theme_minimal() +
+  labs(title = "Observation vs. Prediction - Model 3", x = "Observed values (steps)", y = "Model predictions (steps)")
+
+
+### number
+#creating predictions from model
+pred_num <- predict(number1) 
+pred_num <- as.data.frame(pred_num)
+pred_num$actual <- df_2$number_prop
+pred_num$condition <- df_2$condition
+
+#plot
+ggplot(pred_num, aes(actual, Estimate)) +
+  geom_smooth(color = "#449999", method = "lm", se = F) +
+  geom_point(color = "Dark red") +
+  geom_abline(xintercept = 100, yintercept = 100, linetype = "dashed") +
+  xlim(0, 10) +
+  ylim(0, 10) +
+  theme_minimal() +
+  labs(title = "Observation vs. Prediction - Model 3", x = "Observed values (steps)", y = "Model predictions (steps)")
+
+### colour
+#creating predictions from model
+pred_col <- predict(colour1) 
+pred_col <- as.data.frame(pred_col)
+pred_col$actual <- df_2$colour_prop
+pred_col$condition <- df_2$condition
+
+#plot
+ggplot(pred_col, aes(actual, Estimate)) +
+  geom_smooth(color = "#449999", method = "lm", se = F) +
+  geom_point(color = "Dark red") +
+  geom_abline(xintercept = 100, yintercept = 100, linetype = "dashed") +
+  xlim(0, 10) +
+  ylim(0, 10) +
+  theme_minimal() +
+  labs(title = "Observation vs. Prediction - Model 3", x = "Observed values (steps)", y = "Model predictions (steps)")
+
+
+###pattern
+#creating predictions from model
+pred_pat <- predict(pattern1) 
+pred_pat <- as.data.frame(pred_pat)
+pred_pat$actual <- df_2$pattern_prop
+pred_pat$condition <- df_2$condition
+
+#plot
+ggplot(pred_pat, aes(actual, Estimate)) +
+  geom_smooth(color = "#449999", method = "lm", se = F) +
+  geom_point(color = "Dark red") +
+  geom_abline(xintercept = 100, yintercept = 100, linetype = "dashed") +
+  xlim(0, 10) +
+  ylim(0, 10) +
+  theme_minimal() +
+  labs(title = "Observation vs. Prediction - Model 3", x = "Observed values (steps)", y = "Model predictions (steps)")
+
+
+###landmark
+#creating predictions from model
+pred_land <- predict(landmark1) 
+pred_land <- as.data.frame(pred_land)
+pred_land$actual <- df_2$landmark_prop
+pred_land$condition <- df_2$condition
+
+#plot
+ggplot(pred_land, aes(actual, Estimate)) +
+  geom_smooth(color = "#449999", method = "lm", se = F) +
+  geom_point(color = "Dark red") +
+  geom_abline(xintercept = 100, yintercept = 100, linetype = "dashed") +
+  xlim(0, 10) +
+  ylim(0, 10) +
+  theme_minimal() +
+  labs(title = "Observation vs. Prediction - Model 3", x = "Observed values (steps)", y = "Model predictions (steps)")
+
+
+###barca
+#creating predictions from model
+pred_b <- predict(barca1) 
+pred_b <- as.data.frame(pred_b)
+pred_b$actual <- df_2$barcelona_prop
+pred_b$condition <- df_2$condition
+
+#plot
+ggplot(pred_b, aes(actual, Estimate)) +
+  geom_smooth(color = "#449999", method = "lm", se = F) +
+  geom_point(color = "Dark red") +
+  geom_abline(xintercept = 100, yintercept = 100, linetype = "dashed") +
+  xlim(0, 10) +
+  ylim(0, 10) +
+  theme_minimal() +
+  labs(title = "Observation vs. Prediction - Model 3", x = "Observed values (steps)", y = "Model predictions (steps)")
+
+
+###manhattan
+#creating predictions from model
+pred_m <- predict(manhat1) 
+pred_m <- as.data.frame(pred_m)
+pred_m$actual <- df_2$manhattan_prop
+pred_m$condition <- df_2$condition
+
+#plot
+ggplot(pred_m, aes(actual, Estimate)) +
+  geom_smooth(color = "#449999", method = "lm", se = F) +
+  geom_point(color = "Dark red") +
+  geom_abline(xintercept = 100, yintercept = 100, linetype = "dashed") +
+  xlim(0, 20) +
+  ylim(0, 20) +
+  theme_minimal() +
+  labs(title = "Observation vs. Prediction - Model 3", x = "Observed values (steps)", y = "Model predictions (steps)")
+```
 
 
 
+```{r count of cond words of each cond}
+num2 <- 2 
+getPalette <- colorRampPalette(brewer.pal(2,"Set1"))
+
+ggplot(df, aes(condition, barcelona_prop, color = condition)) +
+  geom_point() +
+  scale_color_manual(values = getPalette(num2)) +
+  geom_smooth(method = "lm")
+
+ggplot(df, aes(condition, manhattan_prop, color = condition)) +
+  geom_point() +
+  scale_color_manual(values = getPalette(num2)) +
+  geom_smooth(method = "lm")
+```
 
 
