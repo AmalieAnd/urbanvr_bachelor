@@ -4,8 +4,11 @@ author: "Amalie Lysgaard Andersen"
 date: "14 11 2019"
 output: html_document
 ---
+################################ Bachelor project ################################ 
 
-# 1. Initial preprocessing
+
+
+### 1. Initial preprocessing
 ```{r load, data, include=FALSE}
 library(pacman)
 pacman::p_load(ggplot2, tidyverse, stringi, stringr, pie, brms)
@@ -17,6 +20,7 @@ cat <- read.csv("Categories - priority categories.csv", na.strings = c("","NA"))
 ##conditions
 con_b <- filter(df, condition == "B") 
 con_m <- filter(df, condition == "M") 
+firstphase <- filter(df, phase == 1)
 ```
 
 ```{r factor, character} 
@@ -34,9 +38,20 @@ cat$direction <- as.character(cat$direction)
 cat$number <- as.character(cat$number)
 ```
 
+```{r means}
+mean(firstphase$age)
+# 22.98611
+sd(firstphase$age)
+# 2.855649
+
+firstphase$men_rot <- as.numeric(firstphase$men_rot)
+mean(firstphase$men_rot)
+# 2.665859
+```
 
 
-# 2. Word count in each category
+
+### 2. Word count in each category
 ```{r counts}
 #Counting all words  
 #df_2$direc_count <- str_count(df_2$desc, paste(na.omit(cat$direction), collapse = "|"))
@@ -80,20 +95,6 @@ as.character(landmarks)
 df$landmark_count <- str_count(df$desc, paste(landmarks, collapse = "|"))
 ```
 
-```{r condition + variable count}
-# new variable that gathers word categories into conditions 
-df$manhattan_count <- df$number_count + df$direc_count
-df$barcelona_count <-  df$landmark_count + df$colour_count + df$pattern_count
-
-# variable within conditions count
-df$direc_prop <- round(((df$direc_count/df$wordcount) * 100), 3)
-df$number_prop <- round(((df$number_count/df$wordcount) * 100), 3)
-df$colour_prop <- round(((df$colour_count/df$wordcount) * 100), 3)
-df$pattern_prop <- round(((df$pattern_count/df$wordcount) * 100), 3)
-df$landmark_prop <- round(((df$landmark_count/df$wordcount) * 100), 3)
-
-```
-
 ```{r proportion}
 # removing punctualisations 
 df$desc <- str_replace_all(df$desc, "[[:punct:]]", "")
@@ -113,6 +114,20 @@ df$barcelona_prop <- round(df$barcelona_prop, 3)
 df$manhattan_prop <- round(df$manhattan_prop, 3)
 ```
 
+```{r condition + variable count}
+# new variable that gathers word categories into conditions 
+df$manhattan_count <- df$number_count + df$direc_count
+df$barcelona_count <-  df$landmark_count + df$colour_count + df$pattern_count
+
+# variable within conditions count
+df$direc_prop <- round(((df$direc_count/df$wordcount) * 100), 3)
+df$number_prop <- round(((df$number_count/df$wordcount) * 100), 3)
+df$colour_prop <- round(((df$colour_count/df$wordcount) * 100), 3)
+df$pattern_prop <- round(((df$pattern_count/df$wordcount) * 100), 3)
+df$landmark_prop <- round(((df$landmark_count/df$wordcount) * 100), 3)
+
+```
+
 ```{r splitting into phases}
 # subsets acc to phase 
 #df_1 <- filter(df, phase == "1")
@@ -122,29 +137,261 @@ df_2 <- filter(df, phase == "2")
 
 
 
-# 3. Modelling
-```{r example of bayesian}
-get_prior(colour_prop ~ 1 + condition, data = df_2, family = gaussian()) 
- 
-m0.0 <- brm(
-  steps ~ 1 , 
-  prior = c(set_prior("normal(20, 5)", class = "Intercept"), 
-            set_prior("normal(0, 10)", class = "sigma")),
-  data = df
-)
+### 3. Modelling
 
-#calling results
-m0.0
-#checking divergents
-pairs(m0.0, np = nuts_params(model0.0))
-#plot
-plot(m0.0)
-#ppcheck
-pp_check(m0.0, nsamples = 50) 
+# Hypothesis (1.1) - (1.5)
+Priors set:
+    - Intercept(5,5)
+    - Beta(0,10)
+    - Sigma(0,10)
+    - Distribution: gaussian
+
+```{r prior for 1.1-1.5}
+#defining priors  
+prior_first = c(
+  prior(normal(5, 5), class = 'Intercept'), 
+  prior(normal(0, 10), class = 'b'),
+  prior(normal(0, 10), class = 'sigma')
+)
 ```
 
-```{r plot raw data}
-#plotting raw data
+Direction model 
+```{r direc and cond} 
+# predictive prior check
+direc_prior <- brm(direc_prop ~ 1 + condition,  
+                  family = "normal", 
+                  df_2, 
+                  prior = prior_first, 
+                  sample_prior = "only")
+
+# pp-check
+pp_check(direc_prior, nsample = 100)
+
+#modelling in brm
+direc1 <- brm(direc_prop ~ 1 + condition, 
+            family = gaussian, 
+            df_2, 
+            prior = prior_first)
+direc1
+plot(direc1)
+pairs(direc1, np = nuts_params(direc1))
+
+#checking posterior 
+pp_check(direc1, nsample = 100)
+ 
+```
+
+Number model
+```{r number and cond}
+# predictive prior check 
+number_prior <- brm(number_prop ~ 1 + condition, 
+                  family = "normal", 
+                  df_2, 
+                  prior = prior_first, 
+                  sample_prior = "only")
+
+# pp-check
+pp_check(number_prior, nsample = 100)
+
+#modelling in brm
+number1 <- brm(number_prop ~ 1 + condition, 
+            family = gaussian, 
+            df_2, 
+            prior = prior_first)
+number1
+plot(number1)
+
+#checking posterior 
+pp_check(number1, nsample = 100)
+```
+
+Colour model
+```{r col and cond} 
+# predictive prior check 
+col_prior <- brm(colour_prop ~ 1 + condition, 
+                  family = "normal", 
+                  df_2, 
+                  prior = prior_first, 
+                  sample_prior = "only")
+
+# pp-check
+pp_check(col_prior, nsample = 100)
+
+#modelling in brm
+colour1 <- brm(colour_prop ~ 1 + condition, 
+            family = gaussian, 
+            df_2, 
+            prior = prior_first)
+colour1
+plot(colour1)
+
+#checking posterior 
+pp_check(colour1, nsample = 100)
+```
+
+Pattern model
+```{r pattern and cond} 
+# predictive prior check 
+pattern_prior <- brm(pattern_prop ~ 1 + condition, 
+                  family = "normal", 
+                  df_2, 
+                  prior = prior_first, 
+                  sample_prior = "only")
+
+# pp-check
+pp_check(pattern_prior, nsample = 100)
+
+#modelling in brm
+pattern1 <- brm(pattern_prop ~ 1 + condition, 
+            family = gaussian, 
+            df_2, 
+            prior = prior_first)
+pattern1
+plot(pattern1)
+
+#checking posterior 
+pp_check(pattern1, nsample = 100)
+ 
+```
+
+Landmark model
+```{r landmark and cond} 
+# predictive prior check
+landmark_prior <- brm(landmark_prop ~ 1 + condition, 
+                  family = "normal",  
+                  df_2, 
+                  prior = prior_first, 
+                  sample_prior = "only")
+
+# pp-check
+pp_check(landmark_prior, nsample = 100)
+
+#modelling in brm
+landmark1 <- brm(landmark_prop ~ 1 + condition, 
+            family = gaussian, 
+            df_2, 
+            prior = prior_first)
+landmark1
+plot(landmark1)
+
+#checking posterior 
+pp_check(landmark1, nsample = 100)
+```
+
+
+# Hypothesis (2.1) + (2.2)
+Priors set:
+    - Intercept(10,5)
+    - Beta(0,10)
+    - Sigma(0,10)
+    - Distribution: gaussian
+    
+```{r prior for 2.1-2.2}
+#defining priors  
+prior_second = c(
+  prior(normal(10, 5), class = 'Intercept'), 
+  prior(normal(0, 10), class = 'b'),
+  prior(normal(0, 10), class = 'sigma')
+)
+```
+
+Barcelona model
+```{r}
+# predictive prior check
+barca_prior <- brm(barcelona_prop ~ 1 + condition + generation, 
+                  family = "normal", 
+                  df_2, 
+                  prior = prior_second, 
+                  sample_prior = "only")
+
+# pp-check
+pp_check(barca_prior, nsample = 100)
+
+#modelling in brm
+barca1 <- brm(barcelona_prop ~ 1 + condition + generation, 
+            family = gaussian, 
+            df_2, 
+            prior = prior_second)
+barca1
+plot(barca1)
+
+#checking posterior 
+pp_check(barca1, nsample = 100)
+```
+
+Manhattan model
+```{r}
+# predictive prior check
+manhat_prior <- brm(manhattan_prop ~ 1 + condition + generation, 
+                  family = "normal", 
+                  df_2, 
+                  prior = prior_second, 
+                  sample_prior = "only")
+
+# pp-check
+pp_check(manhat_prior, nsample = 100)
+
+#modelling in brm
+manhat1 <- brm(manhattan_prop ~ 1 + condition + generation, 
+            family = gaussian, 
+            df_2, 
+            prior = prior_second)
+manhat1
+plot(manhat1)
+
+#checking posterior 
+pp_check(manhat1, nsample = 100)
+```
+
+
+### 4. Model comparison
+
+WAIC
+```{r adding waic criterion for all models}
+direc1 <- add_criterion(direc1, "waic") 
+number1 <- add_criterion(number1, "waic")
+colour1 <- add_criterion(colour1, "waic")
+pattern1 <- add_criterion(pattern1, "waic")
+landmark1 <- add_criterion(landmark1, "waic")
+barca1 <- add_criterion(barca1, "waic")
+manhat1 <- add_criterion(manhat1, "waic")
+```
+
+```{r waic for models 1.1-1.5}
+# compare the WAIC estimates
+w1 <- loo_compare(direc1, number1, colour1, pattern1, landmark1, criterion = "waic")
+print(w1, simplify = F)
+
+#Calculating weights
+model_weights(direc1, number1, colour1, pattern1, landmark1, weights = "waic") %>% 
+  round(digits = 2)
+```
+
+```{r waic for models 2.1-2.2}
+# compare the WAIC estimates
+w2 <- loo_compare(barca1, manhat1, criterion = "waic")
+print(w1, simplify = F)
+
+#Calculating weights
+model_weights(barca1, manhat1, weights = "waic") %>% 
+  round(digits = 2)
+```
+
+```{r marginal effects plots}
+brms::marginal_effects(direc1)
+brms::marginal_effects(number1)
+brms::marginal_effects(colour1)
+brms::marginal_effects(pattern1)
+brms::marginal_effects(landmark1)
+brms::marginal_effects(barca1)
+brms::marginal_effects(manhat1)
+```
+
+
+# 5. Plots
+
+```{r raw data}
+# single categories
 ggplot(df_2, aes(direc_prop)) + 
   geom_density(aes(fill = condition, colour = condition), alpha = 0.3)
 
@@ -162,422 +409,23 @@ ggplot(df_2, aes(pattern_prop)) +
 
 ggplot(df_2, aes(landmark_prop)) + 
   geom_density(aes(fill = condition, colour = condition), alpha = 0.3)
+
+# condition categories
+ggplot(df_2, aes(x = barcelona_prop, fill = condition, color = condition)) +
+  geom_density(aes(group = condition), alpha = 0.3) +
+  scale_fill_brewer(palette="Set1") +
+  scale_color_brewer(palette="Set1") +
+  labs(x = "Proportion of Barcelona words", y = "Density", title = "Distribution of Barcelona-proportions according to condition", legend.title = "Condition") +
+  theme_minimal()
+
+ggplot(df_2, aes(x = manhattan_prop, fill = condition, color = condition)) +
+  geom_density(aes(group = condition), alpha = 0.3) +
+  scale_fill_brewer(palette="Set1") +
+  scale_color_brewer(palette="Set1") +
+  labs(x = "Proportion of Manhattan words", y = "Density", title = "Distribution of Manhattan-proportions according to condition", legend.title = "Condition") +
+  theme_minimal()
 ```
 
-```{r model with getprior estimates}
-prior_0 = c(
-  prior(normal(3, 10), class = 'Intercept'), 
-  prior(normal(0, 10), class = 'b'),
-  prior(normal(0, 10), class = 'sigma')
-)
-
-# predictive prior check
-test_prior <- brm(colour_prop ~ 1 + condition, 
-                  family = "normal", 
-                  df_2, 
-                  prior = prior_0, 
-                  sample_prior = "only")
-
-# pp-check
-pp_check(test_prior, nsample = 100)
-
-#modelling in brm
-test_get <- brm(colour_prop ~ 1 + condition * generation, 
-            family = gaussian, 
-            df_2, 
-            prior = prior_0)
-test_get
-plot(test_get)
-
-#checking posterior 
-pp_check(test_get, nsample = 100)
-```
-
-```{r testing dif priors}
-prior_5 = c(
-  prior(normal(5, 5), class = 'Intercept'), 
-  prior(normal(0, 10), class = 'b'),
-  prior(normal(0, 10), class = 'sigma')
-)
-
-# predictive prior check
-prior_test_5 <- brm(colour_prop ~ 1 + condition, 
-                  family = "normal", 
-                  df_2, 
-                  prior = prior_5, 
-                  sample_prior = "only")
-
-# pp-check
-#pp_check(prior_5, nsample = 100)
-
-#modelling in brm
-model_5 <- brm(colour_prop ~ 1 + condition, 
-            family = gaussian, 
-            df_2, 
-            prior = prior_5)
-model_5
-plot(model_5)
-
-#checking posterior 
-pp_check(model_5, nsample = 100)
-
-# Prior 10
-prior_10 = c(
-  prior(normal(10, 5), class = 'Intercept'), 
-  prior(normal(0, 10), class = 'b'),
-  prior(normal(0, 10), class = 'sigma')
-)
-
-# predictive prior check
-prior_test_5 <- brm(colour_prop ~ 1 + condition, 
-                  family = "normal", 
-                  df_2, 
-                  prior = prior_10, 
-                  sample_prior = "only")
-
-# pp-check
-#pp_check(prior_10, nsample = 100)
-
-#modelling in brm
-model_10 <- brm(colour_prop ~ 1 + condition, 
-            family = gaussian, 
-            df_2, 
-            prior = prior_10)
-model_10
-plot(model_10)
-
-#checking posterior 
-pp_check(model_10, nsample = 100)
-
-
-### waic
-model_5 <- add_criterion(model_5, "waic")
-model_10 <- add_criterion(model_10, "waic")
-# compare the WAIC estimates
-w1 <- loo_compare(model_5, model_10, criterion = "waic")
-print(w1, simplify = F)
-
-#Calculating weights
-model_weights(model_5, model_10, weights = "waic") %>% 
-  round(digits = 2)
-```
-
-- Distribution: gaussian
-- Priors set
-  - Intercept(5,5)
-  - Beta(0,5)
-  - Sigma(0,5)
-
-First try
-```{r col, cond and gen}
-#defining priors
-prior_1 = c(
-  prior(normal(0, 5), class = 'Intercept'), 
-  prior(normal(0, 10), class = 'b'),
-  prior(normal(0, 10), class = 'sigma')
-)
-
-# predictive prior check
-test_prior <- brm(colour_prop ~ 1 + condition * generation, 
-                  family = "normal", 
-                  df_2, 
-                  prior = prior_1, 
-                  sample_prior = "only")
-
-# pp-check
-pp_check(test_prior, nsample = 100)
-
-#modelling in brm
-test <- brm(colour_prop ~ 1 + condition * generation, 
-            family = gaussian, 
-            df_2, 
-            prior = prior_1)
-test
-plot(test)
-
-#checking posterior 
-pp_check(test, nsample = 100)
-```
-
-Real models
-```{r direc and cond} 
-#defining priors  
-prior_test = c(
-  prior(normal(5, 5), class = 'Intercept'), 
-  prior(normal(0, 10), class = 'b'),
-  prior(normal(0, 10), class = 'sigma')
-)
-
-# predictive prior check
-direc_prior <- brm(direc_prop ~ 1 + condition, 
-                  family = "normal", 
-                  df_2, 
-                  prior = prior_test, 
-                  sample_prior = "only")
-
-# pp-check
-pp_check(direc_prior, nsample = 100)
-
-#modelling in brm
-direc1 <- brm(direc_prop ~ 1 + condition, 
-            family = gaussian, 
-            df_2, 
-            prior = prior_test)
-direc1
-plot(direc1)
-pairs(direc1, np = nuts_params(direc1))
-
-#checking posterior 
-pp_check(direc1, nsample = 100)
-
-```
-
-```{r number and cond}
-#defining priors 
-prior_test = c( 
-  prior(normal(5, 5), class = 'Intercept'), 
-  prior(normal(0, 10), class = 'b'),
-  prior(normal(0, 10), class = 'sigma')
-)
-
-# predictive prior check
-number_prior <- brm(number_prop ~ 1 + condition, 
-                  family = "normal", 
-                  df_2, 
-                  prior = prior_test, 
-                  sample_prior = "only")
-
-# pp-check
-pp_check(number_prior, nsample = 100)
-
-#modelling in brm
-number1 <- brm(number_prop ~ 1 + condition, 
-            family = gaussian, 
-            df_2, 
-            prior = prior_test)
-number1
-plot(number1)
-
-#checking posterior 
-pp_check(number1, nsample = 100)
-```
-
-```{r col and cond} 
-#defining priors 
-prior_test = c(
-  prior(normal(5, 5), class = 'Intercept'), 
-  prior(normal(0, 10), class = 'b'),
-  prior(normal(0, 10), class = 'sigma')
-)
-
-# predictive prior check
-col_prior <- brm(colour_prop ~ 1 + condition, 
-                  family = "normal", 
-                  df_2, 
-                  prior = prior_test, 
-                  sample_prior = "only")
-
-# pp-check
-pp_check(col_prior, nsample = 100)
-
-#modelling in brm
-colour1 <- brm(colour_prop ~ 1 + condition, 
-            family = gaussian, 
-            df_2, 
-            prior = prior_test)
-colour1
-plot(colour1)
-
-#checking posterior 
-pp_check(colour1, nsample = 100)
-
-```
-
-```{r pattern and cond} 
-#defining priors
-prior_test = c(
-  prior(normal(5, 5), class = 'Intercept'), 
-  prior(normal(0, 10), class = 'b'),
-  prior(normal(0, 10), class = 'sigma')
-)
-
-# predictive prior check
-pattern_prior <- brm(pattern_prop ~ 1 + condition, 
-                  family = "normal", 
-                  df_2, 
-                  prior = prior_test, 
-                  sample_prior = "only")
-
-# pp-check
-pp_check(pattern_prior, nsample = 100)
-
-#modelling in brm
-pattern1 <- brm(pattern_prop ~ 1 + condition, 
-            family = gaussian, 
-            df_2, 
-            prior = prior_test)
-pattern1
-plot(pattern1)
-
-#checking posterior 
-pp_check(pattern1, nsample = 100)
- 
-```
-
-```{r landmark and cond}
-#defining priors
-prior_test = c( 
-  prior(normal(5, 5), class = 'Intercept'), 
-  prior(normal(0, 10), class = 'b'),
-  prior(normal(0, 10), class = 'sigma')
-)
-
-# predictive prior check
-landmark_prior <- brm(landmark_prop ~ 1 + condition, 
-                  family = "normal", 
-                  df_2, 
-                  prior = prior_test, 
-                  sample_prior = "only")
-
-# pp-check
-pp_check(landmark_prior, nsample = 100)
-
-#modelling in brm
-landmark1 <- brm(landmark_prop ~ 1 + condition, 
-            family = gaussian, 
-            df_2, 
-            prior = prior_test)
-landmark1
-plot(landmark1)
-
-#checking posterior 
-pp_check(landmark1, nsample = 100)
-```
-
-
-
-
-Testers
-```{r direc and count}
-#defining priors
-prior_test = c(
-  prior(normal(0, 5), class = 'Intercept'), 
-  prior(normal(0, 10), class = 'b'),
-  prior(normal(0, 10), class = 'sigma')
-)
-
-# predictive prior check
-direc2_prior <- brm(direc_count ~ 1 + condition + generation, 
-                  family = "normal", 
-                  df_2, 
-                  prior = prior_test, 
-                  sample_prior = "only")
-
-# pp-check
-pp_check(direc2_prior, nsample = 100)
-
-#modelling in brm
-direc2 <- brm(direc_count ~ 1 + condition + generation, 
-            family = gaussian, 
-            df_2, 
-            prior = prior_test)
-direc2
-plot(direc2)
-
-#checking posterior 
-pp_check(direc2, nsample = 100)
-
-```
-
-```{r with id as random slope}
-#defining priors
-prior_test = c(
-  prior(normal(0, 5), class = 'Intercept'), 
-  prior(normal(0, 10), class = 'b'),
-  prior(normal(0, 5), class = 'sd'),
-  prior(normal(0, 10), class = 'sigma')
-)
-
-# predictive prior check
-test_prior <- brm(colour_prop ~ 1 + condition * generation + (1 | ID), 
-                  family = "normal", 
-                  df_2, 
-                  prior = prior_test, 
-                  sample_prior = "only")
-
-# pp-check
-pp_check(test_prior, nsample = 100)
-
-#modelling in brm
-test <- brm(colour_prop ~ 1 + condition * generation + (1 | ID), 
-            family = gaussian, 
-            df_2, 
-            prior = prior_test)
-test
-plot(test)
-
-#checking posterior
-pp_check(test, nsample = 100)
-
-
-
-```
-
-
-WAIC
-```{r adding waic criterion for all models}
-direc1 <- add_criterion(direc1, "waic") 
-number1 <- add_criterion(number1, "waic")
-colour1 <- add_criterion(colour1, "waic")
-pattern1 <- add_criterion(pattern1, "waic")
-landmark1 <- add_criterion(landmark1, "waic")
-```
-
-```{r waic}
-# compare the WAIC estimates
-w1 <- loo_compare(direc1, number1, colour1, pattern1, landmark1, criterion = "waic")
-print(w1, simplify = F)
-
-#Calculating weights
-model_weights(direc1, number1, colour1, pattern1, landmark1, weights = "waic") %>% 
-  round(digits = 2)
-```
-
-
-
-# 4. Plots
-- Idea: radar plot in ggplot
-```{r initial plots}
-
-ggplot(df_2, aes()) +
-  geom_histogram(aes(manhattan_count)) +
-  facet_wrap(~barcelona_count)
-
-ggplot(df_2, aes(manhattan_count, barcelona_count)) +
-  geom_histogram()
-
-
-ggplot(df_2, aes(x = manhattan_count)) +
-  geom_bar(aes(y = barcelona_count)) 
-
-
-plot1 <- ggplot(moraldata, aes(x = framing, y = choice)) +
-  geom_bar(stat = "summary", fun.data = mean_cl_boot, width = 0.5, aes(fill = framing)) +
-  facet_wrap(~scenario) +
-  labs(x = "Answer", y = "Count", title = "Count of answers in the two conditions") +
-  theme(legend.position = "none")
-
-plot1
-plot(data)
-
-
-
-```
-
-
-```{r}
-
-```
 
 
 
