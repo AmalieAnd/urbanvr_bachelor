@@ -335,7 +335,7 @@ pp_check(barca1, nsample = 100)
 
 Manhattan model
 ```{r}
-# predictive prior check
+# predictive prior check 
 manhat_prior <- brm(manhattan_prop ~ 1 + condition + generation, 
                   family = "normal", 
                   df_2, 
@@ -356,6 +356,55 @@ plot(manhat1)
 #checking posterior 
 pp_check(manhat1, nsample = 100)
 ```
+
+RT exploration (bad model)
+```{r }
+# predictive prior check 
+rt_prior <- brm(sec ~ 1 + condition, 
+                  family = "normal", 
+                  df_2, 
+                  prior = prior_second, 
+                  sample_prior = "only")
+
+# pp-check
+pp_check(rt_prior, nsample = 100)
+ 
+#modelling in brm
+rt1 <- brm(sec ~ 1 + condition, 
+            family = gaussian, 
+            df_2, 
+            prior = prior_second)
+rt1
+plot(rt1)
+
+#checking posterior 
+pp_check(rt1, nsample = 100)
+```
+
+Scene exploration (bad model)
+```{r}
+# predictive prior check 
+scene_prior <- brm(sec ~ 1 + scene + ID, 
+                  family = "normal", 
+                  df_2, 
+                  prior = prior_second, 
+                  sample_prior = "only")
+
+# pp-check
+pp_check(scene_prior, nsample = 100)
+ 
+#modelling in brm
+scene1 <- brm(sec ~ 1 + scene + ID, 
+            family = gaussian, 
+            df_2, 
+            prior = prior_second)
+scene1
+plot(scene1)
+
+#checking posterior 
+pp_check(scene1, nsample = 100)
+```
+
 
 
                                                             4. Model comparison
