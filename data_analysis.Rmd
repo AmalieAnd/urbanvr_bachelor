@@ -5,10 +5,11 @@ date: "14 11 2019"
 output: html_document
 ---
 
-                                                   Bachelor project: Analysis of 'TITLE' 
+                                                   Bachelor project: Analysis of 
+                               ”Turn left by the red building”: Shared conceptualisations of urban space' 
                                                                 
                                             Annamaya Halskov-Jensen & Amalie Lysgaard Andersen                       
-                                                              
+                                                            
                                               
                                                       1. Initial preprocessing
 ```{r load, data, include=FALSE} 
@@ -170,7 +171,7 @@ prior_first = c(
 )
 ```
 
-Direction model 
+Direction_prop ~ condition
 ```{r direc and cond}  
 # predictive prior check
 direc_prior <- brm(direc_prop ~ 1 + condition,  
@@ -196,7 +197,7 @@ pp_check(direc1, nsample = 100)
  
 ```
 
-Number model
+Number_prop ~ condition
 ```{r number and cond} 
 # predictive prior check 
 number_prior <- brm(number_prop ~ 1 + condition, 
@@ -220,7 +221,7 @@ plot(number1)
 pp_check(number1, nsample = 100)
 ```
 
-Colour model
+Colour_prop ~ condition
 ```{r col and cond} 
 # predictive prior check  
 col_prior <- brm(colour_prop ~ 1 + condition, 
@@ -244,7 +245,7 @@ plot(colour1)
 pp_check(colour1, nsample = 100)
 ```
 
-Pattern model
+Pattern_prop ~ condition
 ```{r pattern and cond}  
 # predictive prior check 
 pattern_prior <- brm(pattern_prop ~ 1 + condition, 
@@ -268,7 +269,7 @@ plot(pattern1)
 pp_check(pattern1, nsample = 100)
 ```
 
-Landmark model
+Landmark_prop ~ condition
 ```{r landmark and cond} 
 # predictive prior check
 landmark_prior <- brm(landmark_prop ~ 1 + condition, 
@@ -309,7 +310,85 @@ prior_second = c(
 )
 ```
 
-Barcelona model
+2.1 barcelona_prop ~ condition * generation
+```{r}
+#Relevelling factor
+df_2_x <- df_2
+df_2_x$condition <- factor(df_2_x$condition, levels(df_2_x$condition)[c(2,1)])
+
+#predictive prior check
+prior_barcelona <- brm(barcelona_prop ~ 1 + condition * generation, family = gaussian, df_2_x, prior = prior_second, sample_prior = "only")
+pp_check(prior_barcelona, nsample = 100)
+
+#modelling in brm
+barcelona_2 <- brm(barcelona_prop ~ 1 + condition * generation, family = gaussian, df_2_x, prior = prior_second)
+barcelona_2
+plot(barcelona_2)
+
+#marginal effects
+brms::marginal_effects(barcelona_2)
+
+#checking posterior
+pp_check(barcelona_2, nsample = 100)
+
+#adding waic
+barcelona_2 <- add_criterion(barcelona_2, "waic") 
+```
+
+2.2 manhattan_prop ~ condition * generation
+```{r}
+#Relevelling factor
+df_2_x <- df_2
+df_2_x$condition <- factor(df_2_x$condition, levels(df_2_x$condition)[c(2,1)])
+
+#predictive prior check
+prior_manhattan <- brm(barcelona_prop ~ 1 + condition * generation, family = gaussian, df_2, prior = prior_second, sample_prior = "only")
+pp_check(prior_manhattan, nsample = 100)
+
+#modelling in brm
+manhattan <- brm(manhattan_prop ~ 1 + condition * generation, family = gaussian, df_2, prior = prior_second)
+manhattan
+plot(manhattan)
+
+#marginal effects
+brms::marginal_effects(manhattan)
+
+#checking posterior
+pp_check(manhattan, nsample = 100)
+
+#adding waic
+manhattan <- add_criterion(manhattan, "waic") 
+```
+
+2.2 Manhattan model (only for plot)
+```{r}
+#Relevelling factor
+df_2_z <- df_2
+df_2_z$condition <- factor(df_2_z$condition, levels(df_2_z$condition)[c(2,1)])
+
+#predictive prior check
+prior_manhattan <- brm(barcelona_prop ~ 1 + condition * generation, family = gaussian, df_2, prior = prior_second, sample_prior = "only")
+pp_check(prior_manhattan, nsample = 100)
+
+#modelling in brm
+manhattan_2 <- brm(manhattan_prop ~ 1 + condition * generation, family = gaussian, df_2_z, prior = prior_second)
+manhattan
+plot(manhattan)
+
+#marginal effects
+brms::marginal_effects(manhattan)
+
+#checking posterior
+pp_check(manhattan, nsample = 100)
+
+#adding waic
+manhattan <- add_criterion(manhattan, "waic")
+```
+
+
+# Exploration models
+
+Barcelona prop ~ Condition + generation 
 ```{r}
 # predictive prior check 
 barca_prior <- brm(barcelona_prop ~ 1 + condition + generation, 
@@ -333,11 +412,11 @@ plot(barca1)
 pp_check(barca1, nsample = 100)
 ```
 
-Manhattan model
+Manhattan ~ Condition + generation 
 ```{r}
 # predictive prior check 
 manhat_prior <- brm(manhattan_prop ~ 1 + condition + generation, 
-                  family = "normal", 
+                  family = "normal",  
                   df_2, 
                   prior = prior_second, 
                   sample_prior = "only")
@@ -357,9 +436,9 @@ plot(manhat1)
 pp_check(manhat1, nsample = 100)
 ```
 
-RT exploration (bad model)
+Sec ~ condition 
 ```{r }
-# predictive prior check 
+# predictive prior check  
 rt_prior <- brm(sec ~ 1 + condition, 
                   family = "normal", 
                   df_2, 
@@ -381,8 +460,8 @@ plot(rt1)
 pp_check(rt1, nsample = 100)
 ```
 
-Scene exploration (bad model)
-```{r}
+Sec ~ scene + ID
+```{r} 
 # predictive prior check 
 scene_prior <- brm(sec ~ 1 + scene + ID, 
                   family = "normal", 
@@ -410,17 +489,17 @@ pp_check(scene1, nsample = 100)
                                                             4. Model comparison
 
 WAIC
-```{r adding waic criterion for all models}
+```{r adding waic criterion for all models} 
 direc1 <- add_criterion(direc1, "waic") 
 number1 <- add_criterion(number1, "waic")
 colour1 <- add_criterion(colour1, "waic")
 pattern1 <- add_criterion(pattern1, "waic")
 landmark1 <- add_criterion(landmark1, "waic")
-barca1 <- add_criterion(barca1, "waic")
-manhat1 <- add_criterion(manhat1, "waic")
+barca1 <- add_criterion(barca2, "waic")
+manhat1 <- add_criterion(manhattan, "waic")
 ```
 
-```{r waic for models 1.1-1.5}
+```{r waic for models 1.1-1.5} 
 # compare the WAIC estimates
 w1 <- loo_compare(direc1, number1, colour1, pattern1, landmark1, criterion = "waic")
 print(w1, simplify = F)
@@ -431,7 +510,7 @@ model_weights(direc1, number1, colour1, pattern1, landmark1, weights = "waic") %
 ```
 
 ```{r waic for models 2.1-2.2}
-# compare the WAIC estimates
+# compare the WAIC estimates 
 w2 <- loo_compare(barca1, manhat1, criterion = "waic")
 print(w1, simplify = F)
 
@@ -445,8 +524,8 @@ model_weights(barca1, manhat1, weights = "waic") %>%
                                                                 5. Plots
 
 ```{r raw data}
-# single categories
-ggplot(df_2, aes(direc_prop)) + 
+# single categories 
+ggplot(df_2, aes(direc_prop)) +  
   geom_density(aes(fill = condition, colour = condition), alpha = 0.3)
 
 ggplot(df_2, aes(number_prop)) + 
@@ -469,47 +548,46 @@ ggplot(df_2, aes(x = barcelona_prop, fill = condition, color = condition)) +
   geom_density(aes(group = condition), alpha = 0.3) + 
   scale_fill_brewer(palette="Set1") +
   scale_color_brewer(palette="Set1") +
-  labs(x = "Proportion of Barcelona words", y = "Density", title = "Distribution of Barcelona-proportions according to condition", legend.title = "Condition") +
+  labs(x = "Proportion of Barcelona words", y = "Density", title = "Distribution of proportionate use of barcelona words", legend.title = "Condition") +
   theme_minimal()
 
 ggplot(df_2, aes(x = manhattan_prop, fill = condition, color = condition)) +
   geom_density(aes(group = condition), alpha = 0.3) +
   scale_fill_brewer(palette="Set1") +
   scale_color_brewer(palette="Set1") +
-  labs(x = "Proportion of Manhattan words", y = "Density", title = "Distribution of Manhattan-proportions according to condition", legend.title = "Condition") +
+  labs(x = "Proportion of Manhattan words", y = "Density", title = "Distribution of proportionate use of manhattan words", legend.title = "Condition") +
   theme_minimal()
 ```
 
-```{r marginal effects plots} 
+```{r marginal effects plots}   
 brms::marginal_effects(direc1)
 brms::marginal_effects(number1)
 brms::marginal_effects(colour1)
 brms::marginal_effects(pattern1)
 brms::marginal_effects(landmark1)
-brms::marginal_effects(barca1)
-brms::marginal_effects(manhat1)
+brms::marginal_effects(barcelona_2)
+brms::marginal_effects(manhattan_2)
 
-# direc w/labs
-this <- brms::marginal_effects(barca1) 
-plot(this, plot = F)[[1]] +
-  scale_color_brewer(type = "qual", palette = "Set1") +
-  scale_fill_brewer(type = "qual", palette = "Set1") +
+
+this <- brms::marginal_effects(barcelona_2) 
+plot(this, plot = F)[[3]] +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  scale_fill_brewer(type = "qual", palette = "Dark2") +
   labs(title = "Marginal effects of model 2.1", x = "Condition", y = "Count of barcelona words") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
 
-that <- brms::marginal_effects(manhat1)
-plot(that, plot = F)[[1]] +
-  scale_color_brewer(type = "qual", palette = "Set1") +
-  scale_fill_brewer(type = "qual", palette = "Set1") +
+that <- brms::marginal_effects(manhattan_2)
+plot(that, plot = F)[[3]] +
+  scale_color_brewer(type = "qual", palette = "Dark2") +
+  scale_fill_brewer(type = "qual", palette = "Dark2") +
   labs(title = "Marginal effects of model 2.2", x = "Condition", y = "Count of manhattan words") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5))
+
 ```
 
-```{r pred vs actual plots}
-#(not used)
-
+```{r pred vs actual plots - not used}
 ### direction
 #creating predictions from model
 pred_direc <- predict(direc1) 
@@ -636,7 +714,7 @@ ggplot(pred_m, aes(actual, Estimate)) +
 ```
 
 ```{r count of cond words of each cond}
-num2 <- 2 
+num2 <- 2  
 getPalette <- colorRampPalette(brewer.pal(2,"Set1"))
 
 ggplot(df, aes(condition, barcelona_prop, color = condition)) +
